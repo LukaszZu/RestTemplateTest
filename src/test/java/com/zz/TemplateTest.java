@@ -6,6 +6,8 @@ import java.nio.file.Files;
 import java.util.List;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,19 +34,34 @@ public class TemplateTest {
     @Autowired
     private MvcBoot.ServiceClient service;
 
+    String jsonString;
+
+    @Before
+    public void before() throws IOException {
+        jsonString = String.join("\n", Files.readAllLines(ctx.getResource("test.json").getFile().toPath()));
+    }
+
     @Test
     public void jsonShouldBEParsedPropely() throws IOException {
         //given
-        List<String> jsonString = Files.readAllLines(ctx.getResource("test.json").getFile().toPath());
-        server.expect(requestTo("/test")).andRespond(withSuccess(String.join("\n",jsonString), MediaType.APPLICATION_JSON));
+
+        server.expect(requestTo("/test")).andRespond(withSuccess(jsonString, MediaType.APPLICATION_JSON));
 
         //when
         TestClass tc = service.getTest();
-        
+
         //then
         assertThat(tc.getTotal(),equalTo(123456));
         assertThat(tc.getItems().size(),equalTo(2));
         assertThat(tc.getItems(),contains(items()));
+    }
+
+    @Test
+    public void prefixShouldBeRemoved() throws IOException {
+        server.expect(requestTo("/test2")).andRespond(withSuccess("})),\n" + jsonString, MediaType.APPLICATION_JSON));
+        TestClass test2 = service.getTest2();
+
+        System.out.println(test2);
     }
     
     private Item[] items() {
